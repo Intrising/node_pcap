@@ -26,12 +26,18 @@ util.inherits(Pcap, events.EventEmitter);
 
 exports.lib_version = binding.lib_version();
 
+Pcap.prototype.inject = function( buf) {
+  return this.sess.inject( buf);
+};
+
 Pcap.prototype.findalldevs = function () {
     return binding.findalldevs();
 };
 
 Pcap.prototype.open = function (live, device, filter, buffer_size, pcap_output_filename) {
     var me = this;
+
+    this.sess = new binding.session();
 
     if (typeof buffer_size === 'number' && !isNaN(buffer_size)) {
         this.buffer_size = Math.round(buffer_size);
@@ -43,13 +49,13 @@ Pcap.prototype.open = function (live, device, filter, buffer_size, pcap_output_f
 
     if (live) {
         this.device_name = device || binding.default_device();
-        this.link_type = binding.open_live(this.device_name, filter || "", this.buffer_size, pcap_output_filename || "");
+        this.link_type = this.sess.OpenLive(this.device_name, filter || "", this.buffer_size, pcap_output_filename || "");
     } else {
         this.device_name = device;
-        this.link_type = binding.open_offline(this.device_name, filter || "", this.buffer_size, pcap_output_filename || "");
+        this.link_type = this.sess.OpenOffline(this.device_name, filter || "", this.buffer_size, pcap_output_filename || "");
     }
 
-    this.fd = binding.fileno();
+    this.fd = this.sess.Fileno();
     this.opened = true;
     this.readWatcher = new IOWatcher();
     this.empty_reads = 0;
@@ -65,7 +71,7 @@ Pcap.prototype.open = function (live, device, filter, buffer_size, pcap_output_f
 
     // readWatcher gets a callback when pcap has data to read. multiple packets may be readable.
     this.readWatcher.callback = function pcap_read_callback() {
-        var packets_read = binding.dispatch(me.buf, packet_ready);
+        var packets_read = me.sess.Dispatch(me.buf, packet_ready);
         if (packets_read < 1) {
             // according to pcap_dispatch documentation if 0 is returned when reading
             // from a savefile there will be no more packets left. this check ensures
@@ -87,7 +93,7 @@ Pcap.prototype.open = function (live, device, filter, buffer_size, pcap_output_f
 
 Pcap.prototype.close = function () {
     this.opened = false;
-    binding.close();
+    this.sess.close();
     // TODO - remove listeners so program will exit I guess?
 };
 
@@ -462,6 +468,7 @@ decode.ip = function (raw_packet, offset) {
     ret.daddr = unpack.ipv4_addr(raw_packet, offset + 16); // 16, 17, 18, 19
 
     // TODO - parse IP "options" if header_length > 5
+
     switch (ret.protocol) {
     case 1:
         ret.protocol_name = "ICMP";
@@ -482,6 +489,7 @@ decode.ip = function (raw_packet, offset) {
     default:
         ret.protocol_name = "Unknown";
     }
+
     return ret;
 };
 
