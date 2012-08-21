@@ -26,6 +26,8 @@ util.inherits(Pcap, events.EventEmitter);
 
 exports.lib_version = binding.lib_version();
 
+exports.findalldevs = binding.findalldevs
+
 Pcap.prototype.inject = function( buf) {
   return this.sess.inject( buf);
 };
