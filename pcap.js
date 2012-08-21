@@ -67,8 +67,10 @@ Pcap.prototype.open = function (live, device, filter, buffer_size, pcap_output_f
     function packet_ready(header) {
         header.link_type = me.link_type;
         header.time_ms = (header.tv_sec * 1000) + (header.tv_usec / 1000);
+        var buf = new Buffer(header.caplen)
+        me.buf.copy(buf, 0, 0, header.caplen)
         me.buf.pcap_header = header;
-        me.emit('packet', me.buf);
+        me.emit('packet', buf);
     }
 
     // readWatcher gets a callback when pcap has data to read. multiple packets may be readable.
