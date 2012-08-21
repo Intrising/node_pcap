@@ -307,7 +307,11 @@ static Handle<Value> Open(bool live, const Arguments& args)
       if (copy_len > sess->buffer_length) {
           copy_len = sess->buffer_length;
     }
-      memcpy(sess->buffer_data, packet, copy_len);
+
+    //sess->buffer_length = pkthdr->caplen;
+    //sess->buffer_data = Buffer::New(pkthdr->caplen);
+    memcpy(sess->buffer_data, packet, copy_len);
+    sess->buffer_data[copy_len] = '\0';
 
     TryCatch try_catch;
 
@@ -357,11 +361,7 @@ static Handle<Value> Open(bool live, const Arguments& args)
     Local<Function> callback = Local<Function>::Cast(args[1]);
       sess->callback = (u_char*)&callback;
 
-    int packet_count, total_packets = 0;
-    do {
-          packet_count = pcap_dispatch(sess->pcap_handle, 1, PacketReady, (u_char *)sess);
-        total_packets += packet_count;
-    } while (packet_count > 0);
+    int packet_count = pcap_dispatch(sess->pcap_handle, 1, PacketReady, (u_char *)sess);
 
     return scope.Close(Integer::NewFromUnsigned(packet_count));
 }
