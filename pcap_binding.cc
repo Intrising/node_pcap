@@ -34,7 +34,8 @@ void SetAddrStringHelper(const char* key, sockaddr *addr, Local<Object> Address)
       size = INET6_ADDRSTRLEN;
     }
     const char* address = inet_ntop(addr->sa_family, src, dst_addr, size);
-    Address->Set(String::New(key), String::New(address));
+    if(address != NULL)
+      Address->Set(String::New(key), String::New(address));
   }
 }
 
